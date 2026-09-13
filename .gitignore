@@ -1,0 +1,7 @@
+data/*.csv
+data/*.csv.gz
+outputs/*.png
+outputs/*.json
+__pycache__/
+*.pyc
+.venv/
