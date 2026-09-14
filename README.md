@@ -77,11 +77,3 @@ are written to `outputs/`.
   benign/attack labels.
 - **Analysis:** detection rate broken down by attack tool/technique, plus
   concrete examples of true positives, false positives and false negatives.
-
-## Note on the Word report
-
-This repository contains the Python implementation only. The lab also asks
-for a `.docx` report (student info, screenshots of each stage, results
-analysis, conclusion) — build that separately from your own run of
-`python -m src.main`, using the console output and the plots in `outputs/`
-as your evidence/screenshots.
