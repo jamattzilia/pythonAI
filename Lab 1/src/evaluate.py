@@ -51,7 +51,7 @@ def plot_confusion_matrix(y_true, y_pred, out_path: str) -> np.ndarray:
                 yticklabels=["normal", "attack"])
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
-    plt.title("Confusion Matrix - Isolation Forest")
+    plt.title("Confusion Matrix - Random Forest")
     plt.tight_layout()
     plt.savefig(out_path, dpi=150)
     plt.close()
@@ -67,16 +67,16 @@ def plot_score_distribution(scores, y_true, out_path: str) -> None:
                  stat="density", kde=True, alpha=0.5)
     sns.histplot(scores[y_true == 1], color="tab:red", label="attack",
                  stat="density", kde=True, alpha=0.5)
-    plt.axvline(0, color="black", linestyle="--", linewidth=1,
+    plt.axvline(0.5, color="black", linestyle="--", linewidth=1,
                 label="decision threshold")
-    plt.xlabel("Isolation Forest anomaly score (lower = more anomalous)")
+    plt.xlabel("Random Forest predicted probability of attack")
     plt.ylabel("Density")
-    plt.title("Anomaly Score Distribution by True Label")
+    plt.title("Predicted Attack Probability by True Label")
     plt.legend()
     plt.tight_layout()
     plt.savefig(out_path, dpi=150)
     plt.close()
-    print(f"Saved anomaly-score distribution plot to {out_path}")
+    print(f"Saved attack-probability distribution plot to {out_path}")
 
 
 def analyze_detections(X_test, y_test, y_pred, attack_type_test) -> pd.DataFrame:
@@ -118,7 +118,7 @@ def analyze_detections(X_test, y_test, y_pred, attack_type_test) -> pd.DataFrame
 def save_summary(metrics: dict, cm, per_type: pd.DataFrame, n_train: int,
                   n_test: int, n_anomalies: int, out_path: str) -> None:
     summary = {
-        "algorithm": "Isolation Forest (sklearn.ensemble.IsolationForest)",
+        "algorithm": "Random Forest (sklearn.ensemble.RandomForestClassifier, class_weight={0: 1, 1: 5})",
         "n_train_samples": n_train,
         "n_test_samples": n_test,
         "n_detected_anomalies": n_anomalies,

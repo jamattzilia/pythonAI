@@ -8,7 +8,8 @@ Dataset: AB-TRAP (c2dc/AB-TRAP) Local Area Network testbed.
     masscan, unicornscan, zmap) run against several LAN targets.
   - Bonafide capture: packets from genuine background traffic on the same
     network with no attack running.
-Algorithm: Isolation Forest (unsupervised anomaly detection).
+Algorithm: Random Forest (supervised classification), weighted to
+minimize missed attacks (false negatives) while keeping accuracy high.
 """
 import os
 
@@ -35,26 +36,28 @@ def run() -> None:
           f"attack: {(features.label == 1).sum()}")
 
     X_train, X_test, y_train, y_test, _, attack_type_test = \
-        preprocessing.split_for_anomaly_detection(features)
-    print(f"\nTraining set (benign only): {X_train.shape[0]} packets")
-    print(f"Testing set (unseen benign + all attack packets): {X_test.shape[0]} packets")
+        preprocessing.split_train_test(features)
+    print(f"\nTraining set (stratified 70%, both classes): {X_train.shape[0]} packets "
+          f"({(y_train == 1).sum()} attack, {(y_train == 0).sum()} benign)")
+    print(f"Testing set (stratified 30%, unseen packets): {X_test.shape[0]} packets "
+          f"({(y_test == 1).sum()} attack, {(y_test == 0).sum()} benign)")
 
     # STEP 3 - Train the model
     print("\n" + "=" * 70)
-    print("STEP 3 - MODEL TRAINING (Isolation Forest)")
+    print("STEP 3 - MODEL TRAINING (Random Forest)")
     print("=" * 70)
-    clf = model.train_isolation_forest(X_train)
-    print(f"Trained IsolationForest(n_estimators={clf.n_estimators}, "
-          f"contamination={clf.contamination}) on {X_train.shape[0]} normal packets.")
+    clf = model.train_classifier(X_train, y_train)
+    print(f"Trained RandomForestClassifier(n_estimators={clf.n_estimators}, "
+          f"class_weight={model.CLASS_WEIGHT}) on {X_train.shape[0]} labeled packets.")
 
     # STEP 4 - Predict & evaluate
-    y_pred, scores = model.predict(clf, X_test)
+    y_pred, attack_proba = model.predict(clf, X_test)
     metrics = evaluate.compute_metrics(y_test, y_pred)
     evaluate.print_metrics(metrics)
     cm = evaluate.plot_confusion_matrix(
         y_test, y_pred, os.path.join(config.OUTPUT_DIR, "confusion_matrix.png"))
     evaluate.plot_score_distribution(
-        scores, y_test, os.path.join(config.OUTPUT_DIR, "anomaly_scores.png"))
+        attack_proba, y_test, os.path.join(config.OUTPUT_DIR, "anomaly_scores.png"))
 
     # STEP 5 - Analyze results
     per_type = evaluate.analyze_detections(X_test, y_test, y_pred, attack_type_test)
@@ -63,8 +66,8 @@ def run() -> None:
         int((y_pred == 1).sum()), os.path.join(config.OUTPUT_DIR, "summary.json"))
 
     print("\n" + "=" * 70)
-    print("DONE - see the outputs/ folder for the confusion matrix, anomaly")
-    print("score plot and a JSON summary of this run.")
+    print("DONE - see the outputs/ folder for the confusion matrix, attack-")
+    print("probability plot and a JSON summary of this run.")
     print("=" * 70)
 
 

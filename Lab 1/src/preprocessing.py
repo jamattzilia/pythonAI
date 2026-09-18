@@ -20,7 +20,7 @@ length, header length, the individual TCP flag bits, window size, urgent
 pointer, IP id and DSCP field. Port-scanning tools each set very
 characteristic, unusual combinations of these (e.g. a NULL scan sends no
 flags at all, a XMAS scan sets FIN+PSH+URG, SYN scans only set SYN), which is
-exactly what makes them stand out as anomalies against normal traffic.
+exactly the signal a supervised classifier learns to key off (see model.py).
 """
 from typing import Tuple
 
@@ -101,36 +101,31 @@ def preprocess_features(df: pd.DataFrame) -> pd.DataFrame:
     return feature_df
 
 
-def split_for_anomaly_detection(feature_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame,
-                                                                     pd.Series, pd.Series,
-                                                                     pd.Series, pd.Series]:
-    """Split into train/test sets the way one-class anomaly detection expects.
+def split_train_test(feature_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame,
+                                                          pd.Series, pd.Series,
+                                                          pd.Series, pd.Series]:
+    """Stratified 70/30 train/test split for supervised training.
 
-    Isolation Forest is trained ONLY on normal ("benign") traffic, so it
-    learns what normal looks like. The held-out benign packets plus every
-    attack packet then form the test set the model has never seen -
-    satisfying the lab's requirement that testing data must not be used to
-    train the model, while still giving a realistic anomaly-detection setup
-    (in production you rarely have pre-labelled attack traffic to train on).
+    Both benign AND attack packets are used to train the model (this is a
+    supervised classifier, not a one-class anomaly detector) - but training
+    and testing data are still strictly disjoint, split with
+    ``train_test_split``. Stratifying on ``label`` keeps the benign/attack
+    ratio (and therefore every attack technique's minimum representation)
+    consistent between the two splits, which matters here because several
+    attack techniques (e.g. masscan_tcp_syn) have only ~1,000 packets total.
 
     Returns X_train, X_test, y_train, y_test, attack_type_train, attack_type_test
-    (attack_type_* are kept only for the results-analysis step).
+    (attack_type_* are kept only for the results-analysis step, never used
+    as a model feature).
     """
     feature_cols = [c for c in feature_df.columns
                     if c not in (LABEL_COLUMN, "attack_type")]
+    X = feature_df[feature_cols]
+    y = feature_df[LABEL_COLUMN]
+    attack_type = feature_df["attack_type"]
 
-    benign_df = feature_df[feature_df[LABEL_COLUMN] == 0]
-    attack_df = feature_df[feature_df[LABEL_COLUMN] == 1]
+    X_train, X_test, y_train, y_test, at_train, at_test = train_test_split(
+        X, y, attack_type, test_size=config.TEST_SIZE,
+        random_state=config.RANDOM_STATE, stratify=y)
 
-    benign_train, benign_test = train_test_split(
-        benign_df, test_size=config.TEST_SIZE, random_state=config.RANDOM_STATE)
-
-    test_df = pd.concat([benign_test, attack_df], ignore_index=True)
-    test_df = test_df.sample(frac=1, random_state=config.RANDOM_STATE).reset_index(drop=True)
-
-    X_train = benign_train[feature_cols]
-    y_train = benign_train[LABEL_COLUMN]
-    X_test = test_df[feature_cols]
-    y_test = test_df[LABEL_COLUMN]
-
-    return X_train, X_test, y_train, y_test, benign_train["attack_type"], test_df["attack_type"]
+    return X_train, X_test, y_train, y_test, at_train, at_test
