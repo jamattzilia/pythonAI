@@ -100,11 +100,3 @@ All 22 attack techniques are detected at 94.8–100%, except
 in this dataset to statistically ordinary traffic, and are the main
 remaining source of false negatives. See `LEARNING.md` for the full
 per-technique breakdown and the reasoning behind every design choice.
-
-## Note on the Word report
-
-This repository contains the Python implementation only. The lab also asks
-for a `.docx` report (student info, screenshots of each stage, results
-analysis, conclusion) — build that separately from your own run of
-`python -m src.main`, using the console output and the plots in `outputs/`
-as your evidence/screenshots.
