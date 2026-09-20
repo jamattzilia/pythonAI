@@ -43,7 +43,9 @@ def run() -> None:
           f"on {X_train.shape[0]} labeled rows.")
 
     # STEP 4 - Evaluate
-    y_pred = clf.predict(X_test)
+    print(f"\nDecision threshold: {config.DECISION_THRESHOLD} "
+          f"(lowered from the default 0.5 to minimize false negatives - see model.py)")
+    y_pred, attack_proba = model.predict(clf, X_test)
     metrics = evaluate.compute_metrics(y_test, y_pred)
     evaluate.print_metrics(metrics)
     evaluate.plot_confusion_matrix(
