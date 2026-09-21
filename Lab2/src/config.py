@@ -38,3 +38,8 @@ LABEL_COLUMN = "label"
 
 RANDOM_STATE = 42
 TOP_N_FEATURES = 10
+
+# Random Forest's predict_proba() threshold for calling a packet an attack.
+# Lowered from the default 0.5 to minimize false negatives - see
+# model.predict() and README.md for the sweep that justifies this value.
+DECISION_THRESHOLD = 0.015

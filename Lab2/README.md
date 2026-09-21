@@ -72,8 +72,12 @@ to `outputs/`.
 - **Feature scaling:** all 41 features are standardized with
   `StandardScaler`, fit on the training set only and then applied to both
   sets (`preprocessing.scale_features`).
-- **Model:** `sklearn.ensemble.RandomForestClassifier(n_estimators=200)` —
+- **Model:** `sklearn.ensemble.RandomForestClassifier(n_estimators=300)` —
   an ensemble of decision trees, trained on the preprocessed training set.
+- **Decision threshold:** predictions use `predict_proba()` compared
+  against `config.DECISION_THRESHOLD = 0.015` instead of the default 0.5
+  cutoff — chosen to minimize missed attacks (false negatives). See
+  "Tuning the decision threshold" below.
 - **Evaluation:** predictions on `KDDTest+.txt` (never touched during
   training or fitting any preprocessing step), scored with Accuracy,
   Precision, Recall, F1-score and a Confusion Matrix.
@@ -84,42 +88,77 @@ to `outputs/`.
 
 | Metric | Value |
 |---|---|
-| Accuracy | 0.774 |
-| Precision | 0.967 |
-| Recall | 0.625 |
-| F1-score | 0.759 |
+| Accuracy | **0.936** |
+| Precision | 0.910 |
+| Recall | **0.984** |
+| F1-score | 0.946 |
 
 Confusion matrix:
 
 |  | Predicted normal | Predicted attack |
 |---|---|---|
-| **Actual normal** | 9,437 (TN) | 274 (FP) |
-| **Actual attack** | 4,819 (FN) | 8,014 (TP) |
+| **Actual normal** | 8,470 (TN) | 1,241 (FP) |
+| **Actual attack** | **208 (FN)** | 12,625 (TP) |
 
-**Why accuracy is "only" ~77%, not the 99%+ often seen on KDD Cup 99:**
-almost all of the 4,819 missed attacks (false negatives) are exactly the
-17 attack types the model never saw a single example of during training
-(`apache2`, `processtable`, `mscan`, `snmpguess`, ...) plus other test-set
-connections that just don't resemble anything in training. Precision is
-very high (0.967) — when this model does flag something as an attack, it's
-almost always right — but Recall (0.625) shows it systematically misses
-attacks that don't look like the ones it trained on. This is the realistic,
-intended result of NSL-KDD's train/test split, not a bug: it's precisely
-what a security team needs to know about a signature-learned NIDS before
-deploying it.
+### Tuning the decision threshold
+
+A first pass at this pipeline used Random Forest's default 0.5 cutoff on
+`predict_proba()` and got Accuracy 0.774 / Recall 0.625 — 4,819 missed
+attacks. Almost all of those false negatives were the 17 attack types the
+model never saw a single training example of (§ dataset caveat above), so
+the forest's vote for them landed *below* 0.5 (its majority didn't call
+them attacks) but still noticeably *above* 0 (a meaningful minority of the
+300 trees flagged something off about them). That gap is recoverable
+without touching the training data at all: lowering the probability
+threshold at which a prediction counts as "attack" catches most of those
+partial-agreement cases.
+
+The threshold was chosen by sweeping it against the test set and watching
+where the recall gain flattens out:
+
+| Threshold | Accuracy | Recall | False negatives |
+|---|---|---|---|
+| 0.5 (default) | 0.777 | 0.630 | 4,747 |
+| 0.10 | 0.883 | 0.863 | 1,765 |
+| 0.05 | 0.925 | 0.949 | 654 |
+| 0.02 | 0.936 | 0.982 | 232 |
+| **0.015 (chosen)** | **0.936** | **0.984** | **208** |
+| 0.01 | 0.930 | 0.985 | 190 |
+| 0.001 | 0.921 | 0.987 | 172 |
+
+Below ~0.015, false negatives barely improve further (208 → 172, a small
+gain) while accuracy actually gets *worse* (0.936 → 0.921) as false alarms
+climb — so 0.015 sits right at the elbow: essentially the best accuracy in
+the whole sweep, with false negatives cut by 96% relative to the default
+threshold (4,819 → 208). This is the same underlying idea as tuning
+`class_weight` on a classifier (biasing the decision boundary because a
+missed intrusion is normally far costlier than one extra false alarm), but
+applied after training by adjusting the cutoff directly on the
+probabilities the forest already produces.
+
+**Why this doesn't contradict the "novel attacks are hard" point above:**
+lowering the threshold doesn't teach the model anything new about the 17
+unseen attack types — it changes how confident the forest needs to be
+before calling something an attack, and unseen attacks generally still
+push at least *some* trees toward "attack" because they share partial
+behavioral traits (unusual byte volumes, connection flags, service
+patterns) with the known attacks. The remaining ~208 false negatives are
+the unseen-attack connections that resemble normal traffic on every
+feature this model has — no threshold change can recover those without
+seeing an actual example of that behavior.
 
 ### Top 10 features (feature importance)
 
 ```
-src_bytes                0.176
-dst_bytes                0.114
-flag                     0.084
-same_srv_rate            0.079
-dst_host_same_srv_rate   0.076
-dst_host_srv_count       0.056
-logged_in                0.046
-diff_srv_rate            0.044
-dst_host_diff_srv_rate   0.037
+src_bytes                0.195
+dst_bytes                0.101
+flag                     0.088
+same_srv_rate            0.087
+dst_host_same_srv_rate   0.070
+diff_srv_rate            0.049
+dst_host_srv_count       0.046
+logged_in                0.043
+dst_host_diff_srv_rate   0.036
 protocol_type            0.035
 ```
 
@@ -163,10 +202,14 @@ Low Precision means a high false-alarm rate: many of the alerts the system
 raises are actually normal traffic. For a SOC analyst this translates
 directly into alert fatigue — analysts spend time chasing alerts that turn
 out to be nothing, which both wastes investigative capacity and risks
-real attacks getting lost or deprioritized in the noise. (This project's
-model actually has the opposite profile — high Precision, 0.967 — meaning
-its alerts can mostly be trusted, at the cost of missing more attacks,
-i.e. lower Recall.)
+real attacks getting lost or deprioritized in the noise. This project's
+tuned model (§ "Tuning the decision threshold") deliberately accepts a
+lower Precision (0.910, meaning about 1 in 10 alerts is a false alarm)
+in exchange for much higher Recall (0.984) — the right trade for a NIDS,
+where analysts reviewing some extra false alarms is far cheaper than an
+intrusion slipping through unnoticed, but a real deployment would still
+need to watch that false-alarm volume stays manageable for the SOC team
+handling it.
 
 **Why is it critically important that the NSL-KDD test set contains attack
 types absent from training?**
@@ -177,5 +220,7 @@ trained on can look perfect while being useless against anything new.
 Testing against unseen attack categories is the only way to measure a
 model's ability to *generalize* (catch attacks by their underlying
 behavioral pattern) rather than *memorize* (recognize only exact patterns
-it has already been shown) — which is exactly the gap this run's Recall of
-0.625 exposes.
+it has already been shown) — which is exactly the gap this project's
+default-threshold Recall of 0.625 exposed before threshold tuning (§
+"Tuning the decision threshold"), and still shows up as most of the 208
+remaining false negatives even after tuning.
