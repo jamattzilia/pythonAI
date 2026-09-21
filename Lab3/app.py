@@ -120,7 +120,11 @@ with col_chart:
     st.bar_chart(pd.Series({"Safe": n_safe, "Threat": n_threat}))
 with col_hist:
     st.caption("Threat probability distribution")
-    st.bar_chart(results["Threat Probability"].value_counts(bins=10).sort_index())
+    bin_edges = [i / 10 for i in range(11)]
+    bin_labels = [f"{bin_edges[i]:.1f}-{bin_edges[i + 1]:.1f}" for i in range(10)]
+    binned = pd.cut(results["Threat Probability"], bins=bin_edges, labels=bin_labels,
+                     include_lowest=True)
+    st.bar_chart(binned.value_counts().reindex(bin_labels, fill_value=0))
 
 st.subheader("Per-flow results")
 display_cols = [c for c in [
