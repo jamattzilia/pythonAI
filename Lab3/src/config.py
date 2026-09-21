@@ -33,6 +33,11 @@ RAW_CSV_PATH = os.path.join(RAW_DATA_DIR, "Friday-WorkingHours-Afternoon-DDos.pc
 # authored test case, not raw dataset content) - see make_evasion_set.py.
 EVASION_CSV_PATH = os.path.join(DATA_DIR, "low_and_slow_evasion.csv")
 
+# Small (~10 KB) real-traffic sample for demoing app.py's uploader without
+# needing the full ~34 MB raw CSV, which some hosting setups reject with an
+# HTTP 413 before the app's own code ever runs - see make_sample_log.py.
+SAMPLE_LOG_PATH = os.path.join(DATA_DIR, "sample_network_log.csv")
+
 MODEL_PATH = os.path.join(MODELS_DIR, "iot_botnet_model.pkl")
 
 # Columns dropped before modelling: identifiers/metadata that would let the

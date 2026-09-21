@@ -70,7 +70,7 @@ with st.sidebar:
     st.caption(
         "A hand-crafted **low-and-slow DDoS** log is included at "
         "`data/low_and_slow_evasion.csv` for the live self-attack demo - "
-        "upload it below and see what happens."
+        "load or upload it below and see what happens."
     )
     if os.path.exists(config.EVASION_CSV_PATH):
         with open(config.EVASION_CSV_PATH, "rb") as f:
@@ -80,21 +80,45 @@ with st.sidebar:
             )
 
 # ------------------------------------------------------------- uploader ---
-uploaded = st.file_uploader("Network log (CSV)", type="csv")
+st.caption(
+    "Demo tip: the two bundled sample logs below are a few KB each and load "
+    "instantly. Uploading the full ~34 MB raw dataset isn't necessary for the "
+    "demo, and some hosting setups reject uploads that large with an HTTP 413 "
+    "before this app ever sees the file."
+)
 
-if uploaded is None:
-    st.info("Upload a network log CSV to see the threat dashboard.")
+col_a, col_b = st.columns(2)
+with col_a:
+    load_sample = st.button("📋 Load bundled sample log (60 real flows)", use_container_width=True)
+with col_b:
+    load_evasion = st.button("🕵️ Load low-and-slow evasion log", use_container_width=True)
+
+uploaded = st.file_uploader("...or upload your own network log (CSV)", type="csv")
+
+if load_sample:
+    st.session_state["active_source"] = ("Bundled sample log", config.SAMPLE_LOG_PATH)
+elif load_evasion:
+    st.session_state["active_source"] = ("Low-and-slow evasion log", config.EVASION_CSV_PATH)
+elif uploaded is not None:
+    st.session_state["active_source"] = (uploaded.name, uploaded)
+
+active = st.session_state.get("active_source")
+if active is None:
+    st.info("Load a bundled sample or upload a network log CSV to see the threat dashboard.")
     st.stop()
 
+source_label, source = active
 try:
-    raw_df = pd.read_csv(uploaded)
+    raw_df = pd.read_csv(source)
 except Exception as exc:
-    st.error(f"Could not read this file as CSV: {exc}")
+    st.error(f"Could not read '{source_label}' as CSV: {exc}")
     st.stop()
 
 if len(raw_df) == 0:
-    st.warning("The uploaded file has no rows.")
+    st.warning(f"'{source_label}' has no rows.")
     st.stop()
+
+st.caption(f"Classifying: **{source_label}** ({len(raw_df)} flows)")
 
 results = classify(bundle, raw_df)
 n_total = len(results)
