@@ -1,0 +1,8 @@
+# Raises Streamlit's own upload cap (default 200 MB) as a precaution.
+# Note: this cannot override a hard limit imposed by a reverse proxy or PaaS
+# router in front of the app (e.g. Heroku's router hard-caps request bodies
+# around 30 MB, regardless of any app-level config) - if uploads still fail
+# with an HTTP 413 after this, use the bundled sample/evasion logs in the
+# app's sidebar instead of uploading the full raw dataset. See README.md.
+[server]
+maxUploadSize = 500
