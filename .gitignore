@@ -1,7 +1,0 @@
-Lab 1/data/*.csv
-Lab 1/data/*.csv.gz
-Lab 1/outputs/*.png
-Lab 1/outputs/*.json
-__pycache__/
-*.pyc
-.venv/
