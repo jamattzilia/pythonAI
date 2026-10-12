@@ -1,0 +1,86 @@
+{
+  "random": {
+    "baseline": {
+      "accuracy": 0.999630849194513,
+      "precision": 0.9998176940906842,
+      "recall": 0.9995313476359092,
+      "f1_score": 0.9996745003580496,
+      "tn": 29308,
+      "fp": 7,
+      "fn": 18,
+      "tp": 38390
+    },
+    "improved": {
+      "accuracy": 0.999970467935561,
+      "precision": 1.0,
+      "recall": 0.999947927515101,
+      "f1_score": 0.9999739630796469,
+      "tn": 29315,
+      "fp": 0,
+      "fn": 2,
+      "tp": 38406
+    },
+    "improved_suspicious_flows": 16,
+    "improved_sampled_logs": {
+      "accuracy": 0.9988334834546609,
+      "precision": 1.0,
+      "recall": 0.9979431368464903,
+      "f1_score": 0.9989705096628745,
+      "tn": 29315,
+      "fp": 0,
+      "fn": 79,
+      "tp": 38329
+    },
+    "rule_threshold": 23
+  },
+  "time": {
+    "baseline": {
+      "accuracy": 0.9982797910921554,
+      "precision": 0.99803173190477,
+      "recall": 0.9986470517716771,
+      "f1_score": 0.9983392970261432,
+      "tn": 54271,
+      "fp": 115,
+      "fn": 79,
+      "tp": 58312
+    },
+    "improved": {
+      "accuracy": 0.9994059072328577,
+      "precision": 0.9997600767754319,
+      "recall": 0.9990923258721378,
+      "f1_score": 0.999426089786968,
+      "tn": 54372,
+      "fp": 14,
+      "fn": 53,
+      "tp": 58338
+    },
+    "improved_suspicious_flows": 192,
+    "improved_sampled_logs": {
+      "accuracy": 0.9990778261524956,
+      "precision": 0.999897082282715,
+      "recall": 0.998321659159802,
+      "f1_score": 0.9991087496786357,
+      "tn": 54380,
+      "fp": 6,
+      "fn": 98,
+      "tp": 58293
+    },
+    "rule_threshold": 23
+  },
+  "evasion_v1": {
+    "flows": 40,
+    "baseline_detected": 0,
+    "improved_threat": 40,
+    "improved_suspicious": 0,
+    "improved_rule_hits": 40,
+    "improved_max_probability": 0.955
+  },
+  "evasion_v2": {
+    "flows": 40,
+    "baseline_detected": 1,
+    "improved_threat": 0,
+    "improved_suspicious": 38,
+    "improved_rule_hits": 0,
+    "improved_max_probability": 0.425
+  }
+}
