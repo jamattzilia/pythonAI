@@ -3,9 +3,9 @@
 **Course:** AI in Cybersecurity · **Lab:** 4 · **Platform:** Lakera sandboxed
 prompt-injection challenges (*Curs-ed CodeReview* and others).
 
-> Status: **INTERIM** — Curs-ed CodeReview Level 1 solved (100/100). Levels 2–5 and
-> the final scoreboard screenshot are pending. This file is the structured backbone
-> for the final `Lab4_report.docx`.
+> Status: **INTERIM.** Solved so far: Curs-ed CodeReview L1 (100); OmniChat Desktop
+> L1, L2, L3 (100 each) = **4 levels, 400 points.** Closest finish: OmniChat L4+L5.
+> This file is the structured backbone for the final `Lab4_report.docx`.
 
 ---
 
@@ -34,16 +34,20 @@ Constraints: at least one challenge must be taken to level 3; doing only level-1
 (nothing above level 2) costs **−10**.
 
 **Conclusion — go deep, not wide.** Completing all 5 levels of **one** challenge is
-the cheapest route to 100. We already hold Curs-ed CodeReview Level 1, so the plan
-is to finish that same challenge (Levels 2–5). Switching to another challenge would
-mean doing all 5 of *it* from scratch; the points route (1100) needs ~11 completed
-levels. Every route eventually requires solving the harder, better-defended levels.
+the cheapest route to 100. We are furthest in **OmniChat Desktop (L1–L3 done)**, so
+the finish line is **OmniChat L4 + L5 = 2 more levels** → automatic 100. The points
+route (1100) would need 7 more levels from the current 400. Every route eventually
+requires cracking the harder, better-defended Level 4/5.
 
-| Route | Extra levels needed | Result |
+| Route | Extra levels needed (from current 4 done / 400 pts) | Result |
 |---|---|---|
+| **Finish OmniChat (L4–L5)** | **+2** | all-5 bonus → 100 *(closest)* |
 | Finish Curs-ed (L2–L5) | +4 | all-5 bonus → 100 |
-| Do all 5 of another challenge | +5 | all-5 bonus → 100 (wastes Curs-ed L1) |
-| Reach 1100 points | ~+10 | 1100 bonus → 100 |
+| Reach 1100 points | +7 | 1100 bonus → 100 |
+
+Current baseline grade without a bonus = 400/10 − 4 = **36**; each extra level at 100
+adds about +9. The all-5 bonus is worth far more than grinding points, and OmniChat
+is 2 levels from it.
 
 ---
 
@@ -102,6 +106,27 @@ prompt injection**.
 Expected to add the remaining README §4 defences (input filters, an injection
 classifier, stricter output checks). Each solved level: record the technique family,
 the defence it added, and why the approach got past it.
+
+## 4b. Worked level log — OmniChat Desktop (MCP tool poisoning)
+
+Vector: a poisoned **MCP weather server** — the injection is hidden in the
+`get_weather_forecast` **tool description** the assistant reads. Goal: smuggle
+private data into the tool call's `notes` argument. Full per-level write-up with
+screenshots is in [`progress_log.md`](progress_log.md). Summary:
+
+| Level | Objective | Technique family | Status |
+|---|---|---|---|
+| L1 (Novice) | leak user **email** | authority framing ("CRITICAL SYSTEM INSTRUCTION") | ✅ 100 |
+| L2 (Adept) | leak **chat history** | telemetry/compliance framing + privacy-override | ✅ 100 |
+| L3 (Master) | chat history, hardened | **disguise-as-functionality** + coercion ("fails validation") | ✅ 100 |
+| L4 | hardened further | TBD — stricter arg/output validation or injection classifier | ⏳ |
+| L5 | — | — | ⬜ |
+
+The escalation L1→L3 is itself the lesson: each level neutralises the previous
+*framing*, so the attacker is pushed from overt authority → operational excuse →
+making the malicious step indistinguishable from the tool's normal operation. This
+is exactly why phrase-matching filters on injections fail, and why the real defences
+are **tool-call argument scanning** and **data minimisation**, not wording rules.
 
 ---
 
